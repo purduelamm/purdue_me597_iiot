@@ -1,6 +1,6 @@
 PL8-1	x
 PL8-2	x
 PL8-3	x
-PL8-r	!
+PL8-r	x
 L8-1	x
-L8-2	2
+L8-2	x
