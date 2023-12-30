@@ -1,4 +1,4 @@
-from pymodbus.client.sync import ModbusTcpClient
+from pymodbus.client import ModbusTcpClient
 from pymodbus.constants import Endian
 from pymodbus.payload import BinaryPayloadDecoder
 import datetime
@@ -14,10 +14,10 @@ port = 502
 # readReg function is returning decoded power meter data
 # Args are address:str = starting register address to read, length:Int = Consequtive length of the register to read
 
-def readReg(address, length, unit=1):
-    read = client.read_holding_registers(address, length, unit=1)
+def readReg(address, length, slave=1):
+    read = client.read_holding_registers(address, length, slave=1)
     reg = read.registers
-    decoder = BinaryPayloadDecoder.fromRegisters(reg, byteorder=Endian.Big, wordorder=Endian.Big)
+    decoder = BinaryPayloadDecoder.fromRegisters(reg, byteorder=Endian.BIG, wordorder=Endian.BIG)
     value = decoder.decode_32bit_float()
     return value
 
@@ -31,7 +31,7 @@ while True:
         now = datetime.datetime.now()
         
         # This is true power in unit of W
-        power = readReg(1564, 2, unit=1)
+        power = readReg(1564, 2, slave=1)
         # if you want to read other data, please try to use readReg function.
         
         # printing out current timestamp and the measurement

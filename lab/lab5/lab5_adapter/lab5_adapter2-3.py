@@ -5,16 +5,16 @@ import time
 import datetime
 from data_item import Event, Sample # load data_item package
 from mtconnect_adapter import Adapter # load mtconnect_adapter package
-from pymodbus.client.sync import ModbusTcpClient
+from pymodbus.client import ModbusTcpClient
 from pymodbus.constants import Endian
 from pymodbus.payload import BinaryPayloadDecoder
 
 
 # function for power meter
-def readReg(client, address, length, unit=1):
-    read = client.read_holding_registers(address, length, unit=1)
+def readReg(client, address, length, slave=1):
+    read = client.read_holding_registers(address, length, slave=1)
     reg = read.registers
-    decoder = BinaryPayloadDecoder.fromRegisters(reg, byteorder=Endian.Big, wordorder=Endian.Big)
+    decoder = BinaryPayloadDecoder.fromRegisters(reg, byteorder=Endian.BIG, wordorder=Endian.BIG)
     value = decoder.decode_32bit_float()
     return value
 

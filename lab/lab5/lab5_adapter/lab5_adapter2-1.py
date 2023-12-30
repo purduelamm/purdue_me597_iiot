@@ -82,7 +82,7 @@ class MTConnectAdapter(object): # MTConnect adapter object
 ## ====================== MAIN ======================
 if __name__ == "__main__":   
     #sensor object for DHT11 sensor, D23 means Pin23 of Raspberry Pi
-    sensor = adafruit_dht.DHT11(board.D23)
+    sensor = adafruit_dht.DHT11(board.D23, use_pulseio=False)
     
     # start MTConnect Adapter
     MTConnectAdapter('127.0.0.1', 7878) # Args: host ip, port number

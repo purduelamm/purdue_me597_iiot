@@ -10,7 +10,7 @@ import busio
 import adafruit_adxl34x
 from data_item import Event, Sample # load data_item package
 from mtconnect_adapter import Adapter # load mtconnect_adapter package
-from pymodbus.client.sync import ModbusTcpClient
+from pymodbus.client import ModbusTcpClient
 from pymodbus.constants import Endian
 from pymodbus.payload import BinaryPayloadDecoder
 
@@ -20,10 +20,10 @@ for p in psutil.process_iter():
         p.kill()
 
 # function for power meter
-def readReg(client, address, length, unit=1):
-    read = client.read_holding_registers(address, length, unit=1)
+def readReg(client, address, length, slave=1):
+    read = client.read_holding_registers(address, length, slave=1)
     reg = read.registers
-    decoder = BinaryPayloadDecoder.fromRegisters(reg, byteorder=Endian.Big, wordorder=Endian.Big)
+    decoder = BinaryPayloadDecoder.fromRegisters(reg, byteorder=Endian.BIG, wordorder=Endian.BIG)
     value = decoder.decode_32bit_float()
     return value
 
@@ -78,7 +78,7 @@ class MTConnectAdapter(object): # MTConnect adapter object
                 # h1 =
                 
                 c = ModbusTcpClient("192.168.1.100",502) # args: IP address, port number
-                p1 = readReg(c,1564,2,unit=1) # true power, W
+                p1 = readReg(c,1564,2,slave=1) # true power, W
                 
                 ## logic to determine power state
                 if p1 > 0:
