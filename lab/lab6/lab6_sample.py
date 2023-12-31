@@ -8,7 +8,7 @@ HOST = 'mepotrb16.ecn.purdue.edu' # MySQL server host DNS
 PORT = 3306 # MySQL server port number
 USER = 'yourname' # MySQL account name
 PASSWORD = 'password' # Password of the account
-DB = 'ME597Spring23' # DB name
+DB = 'ME597Spring24' # DB name
 TABLE = 'yourname_lab6' # table name
 ## Credential
 
