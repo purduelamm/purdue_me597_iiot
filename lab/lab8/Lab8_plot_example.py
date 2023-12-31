@@ -11,7 +11,7 @@ filename = "20230216_112751_Test_lab8_data.csv" # input your filename
 data = [] # initialize data
 N = 1000 # number of sample
 T = 1/N # sampling period
-R = random.randint(0, 10) # randomly pick a integer number between 0 and 10
+R = random.randint(0, 9) # randomly pick a integer number between 0 and 10
 t = np.linspace(0, 1, N) # create time array for plotting
 
 # Reading a CSV file and convert rows as data
