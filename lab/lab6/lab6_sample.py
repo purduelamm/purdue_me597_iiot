@@ -45,7 +45,7 @@ while time.time() - start_time < duration:
     
     print("==INSERT QUERIES DONE==\n")
     
-    time.sleep(3) # wait for 2 seconds
+    time.sleep(3) # wait for 3 seconds
 
 connection.close() # gently close connection
 print("==Program DONE==")
