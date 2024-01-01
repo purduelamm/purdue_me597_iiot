@@ -11,7 +11,7 @@ import math
 SAMPLE = "sample" # sample string for MTConnect HTML sample method
 CURRENT = "current" # current string for MTConnect HTML current method
 SAMP_RATE = int(?) # sampling rate
-CHUNK = int(?) # chunk size
+CHUNK = int(?) # chunk size (ro Count/sequence)
 AGENT = "http://?ip?:?port?/" # MTConnect agent ip:port
 
 N = int(?) # number of sequence to take sound
