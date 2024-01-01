@@ -57,7 +57,7 @@ print("signal SPL (sound pressure level) is {} dB.".format(sound_level)) # print
 #print("Length of signal is ", len(?)/?, "[sec]") # signal length is second unit
 
 fig, ax = plt.subplots(1,2, figsize=(12,4)) # plot time domain and mel-spectrogram of the sound signal
-librosa.display.waveshow(signal, sr=SAMP_RATE, ax=ax[0]) # time domain plot
+librosa.display.waveshow(signal, sr=SAMP_RATE, ax=ax[0], color="blue") # time domain plot
 ax[0].text(0.1,0.7,str(round(sound_level,2))+" dB SPL") # add text (sound pressure level in time domain plot)
 img = librosa.display.specshow(librosa.power_to_db(2*abs(M_signal)/N_FFT, ref=1), ax=ax[1], x_axis='time', y_axis='mel', sr=SAMP_RATE, vmin=-80, vmax=0) # Mel-spectrogram
 ax[0].set(title=timestamp+": time domain", ylim=[-1, 1], ylabel="Amplitude [-]", xlabel="Times [sec]")
