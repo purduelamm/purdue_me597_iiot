@@ -11,7 +11,7 @@ for p in psutil.process_iter():
     if p.name() == 'libgpiod_pulsei' or p.name() == 'libgpiod_pulsein':
         p.kill()
 
-sensor = adafruit_dht.DHT11(board.D23) #sensor object for DHT11 sensor, D23 means Pin23 of Raspberry Pi
+sensor = adafruit_dht.DHT11(board.D23, use_pulseio=False) #sensor object for DHT11 sensor, D23 means Pin23 of Raspberry Pi
 
 # Continuous printing out Temperature and Humidity every 3 seconds
 while True:
