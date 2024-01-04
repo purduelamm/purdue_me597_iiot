@@ -8,11 +8,7 @@ for p in psutil.process_iter():
     if p.name() == 'libgpiod_pulsei' or p.name() == 'libgpiod_pulsein':
         p.kill()
 
-<<<<<<< HEAD
 sensor = adafruit_dht.DHT11(board.D23, use_pulseio=False) #sensor object for DHT11 sensor, D23 means Pin23 of Raspberry Pi
-=======
-sensor = adafruit_dht.DHT11(board.D23, use_pulseio=Fals) #sensor object for DHT11 sensor, D23 means Pin23 of Raspberry Pi
->>>>>>> 17e5cbb3bf7240e5d797546bd47020750decb586
 
 while True:
     try: # if error occurs, go to except        
