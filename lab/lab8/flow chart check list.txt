@@ -1,7 +1,0 @@
-pl-1	x
-pl-2	x
-pl-3	x
-pl-4	x
-l1		x
-l2		x
-R		x

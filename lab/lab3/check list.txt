@@ -1,8 +1,0 @@
-PL3-1	x
-L3-1	x
-L3-2	x
-L3-3	x
-L3-4	x
-Sup-1	x
-Sup-2	x
-Sup-3	x
