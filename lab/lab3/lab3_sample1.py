@@ -5,11 +5,11 @@ import datetime
 
 # define the gateway IP (host) and port
 # normally Modbus TCP uses port number 502
-host = "192.168.1.x" # TA will let you know the IP address of the gateway.
+host = "192.168.1.102" # For online student with Cisco VPN : 10.165.67.146
 port = 502
 
 # define client object of the host and port
-client = ModbusTcpClient(host, port)
+client = ModbusTcpClient(host, port=port)
 client.connect()
 
 now = datetime.datetime.now()
@@ -17,7 +17,7 @@ now = datetime.datetime.now()
 # read the holding registers for frequency
 # Refer to the Modbus address map
 # the arguments are register starting register address (decimal), length, and slave=1.
-freq_read = client.read_holding_registers(1536, 2, slave=1)
+freq_read = client.read_holding_registers(1536, count=2, slave=1)
 
 # get received registers
 freq_reg = freq_read.registers
