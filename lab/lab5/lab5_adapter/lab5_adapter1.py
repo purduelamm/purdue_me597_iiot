@@ -101,7 +101,7 @@ class MTConnectAdapter(object): # MTConnect adapter object
 
                 print("{} MTConnect data collection completed ... ".format(now)) # Printing out completed MTConnect collection
                 print("ADXL345: Xacc={} mm/s^2".format(a1)) # Printing out ADXL345 measured values
-                print("DHT11: Temperature={} °C".format(t1)) # Printing out DHT11 measured values
+                print("DS18B20: Temperature={} °C".format(t1)) # Printing out DS18B20 measured values
                 print("Power meter: Machine is now {}, {} W\n".format(ps,p1)) # Printing out Power meter measured values
                 
                 c.close() # close the client in every measurement
