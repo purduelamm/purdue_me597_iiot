@@ -5,7 +5,7 @@ import datetime
 
 # define the gateway IP (host) and port
 # normally Modbus TCP uses port number 502
-host = "192.168.1.102" # For online student with Cisco VPN : 10.165.67.146
+host = "192.168.1.100" # For online student with Cisco VPN : 10.165.67.146
 port = 502
 
 # define client object of the host and port

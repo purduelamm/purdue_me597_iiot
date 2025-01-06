@@ -3,7 +3,7 @@ import json
 import datetime
 
 # define the IO-Link master IP
-URL = "http://192.168.1.100/" # For online student with Cisco VPN : 10.165.67.146
+URL = "http://192.168.1.102/" # For online student with Cisco VPN : 10.165.67.146
 
 # define JSON body for post method
 # for the details, see the JSON interface manual
