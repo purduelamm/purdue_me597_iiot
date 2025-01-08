@@ -1,10 +1,12 @@
 # MTConnet adapter sample for ME597 Lab5
+# This code is for power meter
 
 import sys
 import time
 import datetime
 from data_item import Event, Sample # load data_item package
 from mtconnect_adapter import Adapter # load mtconnect_adapter package
+
 from pymodbus.client import ModbusTcpClient
 from pymodbus.constants import Endian
 from pymodbus.payload import BinaryPayloadDecoder
@@ -54,7 +56,7 @@ class MTConnectAdapter(object): # MTConnect adapter object
             try:
                 # Do something here
                 # To halt this loop, short-cut is CTRL+C               
-                c = ModbusTcpClient("192.168.1.100",502) # args: IP address, port number
+                c = ModbusTcpClient("192.168.1.100", port = 502) # args: IP address, port number
                 # p1 = ?
                 # ps = ?
 

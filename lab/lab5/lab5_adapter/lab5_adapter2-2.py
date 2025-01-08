@@ -1,14 +1,15 @@
 # MTConnet adapter sample for ME597 Lab5
+# This code is for accelerometer sensor (measure acceleration)
 
 import sys
 import time
 import datetime
-import board
-import busio
-import adafruit_adxl34x
 from data_item import Event, Sample # load data_item package
 from mtconnect_adapter import Adapter # load mtconnect_adapter package
 
+import board
+import busio
+import adafruit_adxl34x
 
 class MTConnectAdapter(object): # MTConnect adapter object
 

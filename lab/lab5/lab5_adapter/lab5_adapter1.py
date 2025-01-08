@@ -3,21 +3,20 @@
 import sys
 import time
 import datetime
-import board
-import adafruit_dht
-import psutil
-import busio
-import adafruit_adxl34x
 from data_item import Event, Sample # load data_item package
 from mtconnect_adapter import Adapter # load mtconnect_adapter package
+
+import os
+import glob
+import random
+
+import board
+import busio
+import adafruit_adxl34x
+
 from pymodbus.client import ModbusTcpClient
 from pymodbus.constants import Endian
 from pymodbus.payload import BinaryPayloadDecoder
-
-# Kill libgpio process, if already used.
-for p in psutil.process_iter():
-    if p.name() == 'libgpiod_pulsei' or p.name() == 'libgpiod_pulsein':
-        p.kill()
 
 # function for power meter
 def readReg(client, address, length, slave=1):
@@ -63,6 +62,27 @@ class MTConnectAdapter(object): # MTConnect adapter object
         self.adapter.complete_gather()
         self.adapter_stream()
 
+    def read_temp_raw(self):
+        os.system('modprobe w1-gpio')
+        os.system('modprobe w1-therm')
+        base_dir = '/sys/bus/w1/devices/'
+        device_folder = glob.glob(base_dir + '28*')[0]
+        device_file = device_folder + '/w1_slave'
+        f = open(device_file, 'r')
+        lines = f.readlines()
+        f.close()
+        return lines
+
+    def read_temp(self):
+        lines = self.read_temp_raw()
+        while lines[0].strip()[-3:] != 'YES':
+            time.sleep(0.2)
+            lines = self.read_temp_raw()
+        equals_pos = lines[1].find('t=')
+        if equals_pos != -1:
+            temp_string = lines[1][equals_pos+2:]
+            temp_c = float(temp_string) / 1000.0
+            return temp_c
 
     def adapter_stream(self):
         while True:
@@ -74,11 +94,11 @@ class MTConnectAdapter(object): # MTConnect adapter object
                 # a2 =
                 # a3 =
 
-                t1 = sensor.temperature # temperature
-                # h1 =
+                t1 = self.read_temp() # temperature
+                # h1 = ? # Humidity (random input 50% - 70%)
                 
-                c = ModbusTcpClient("192.168.1.100",502) # args: IP address, port number
-                p1 = readReg(c,1564,2,slave=1) # true power, W
+                c = ModbusTcpClient("192.168.1.100",port = 502) # args: IP address, port number
+                p1 = readReg(c, 1564, count = 2,slave=1) # true power, W
                 
                 ## logic to determine power state
                 if p1 > 0:
@@ -112,18 +132,6 @@ class MTConnectAdapter(object): # MTConnect adapter object
                 print("Stopping MTConnect...")
                 self.adapter.stop() # Stop adapter thread
                 sys.exit() # Terminate Python
-                
-            except RuntimeError as e: # exception for DHT11 sensor
-                # DHT11 make errors often becuase of reading data.
-                # print error and continue.
-                print(e.args[0])
-                time.sleep(2)
-                pass
-            
-            except Exception as e: # exception for DHT11 sensor
-                # If DHT is not detected, break and stop this script.
-                sensor.exit()
-                raise e
 
 ## ====================== MAIN ======================
 if __name__ == "__main__":
@@ -132,9 +140,6 @@ if __name__ == "__main__":
 
     # acc object is instantiation using i2c of Adafruit ADXL34X library 
     acc = adafruit_adxl34x.ADXL345(i2c)
-    
-    # sensor object for DHT11 sensor, D23 means Pin23 of Raspberry Pi
-    sensor = adafruit_dht.DHT11(board.D23, use_pulseio=False)
     
     # start MTConnect Adapter
     MTConnectAdapter('127.0.0.1', 7878) # Args: host ip, port number

@@ -1,19 +1,16 @@
-# MTConnet adapter sample for ME597 Lab6
+# MTConnet adapter sample for ME597 Lab5
+# This code is for virtual sensor (random humidity value)
+#          and temperature sensor (measure temperatrue)
 
 import sys
 import time
 import datetime
-import board
-import adafruit_dht
-import psutil
 from data_item import Event, Sample # load data_item package
 from mtconnect_adapter import Adapter # load mtconnect_adapter package
 
-# Kill libgpio process, if already used.
-for p in psutil.process_iter():
-    if p.name() == 'libgpiod_pulsei' or p.name() == 'libgpiod_pulsein':
-        p.kill()
-
+import os
+import glob
+import random
 
 class MTConnectAdapter(object): # MTConnect adapter object
 
@@ -24,8 +21,8 @@ class MTConnectAdapter(object): # MTConnect adapter object
         self.adapter = Adapter((host, port))
 
         # For samples
-        self.h1 = Sample('h1') # self.t1 takes 'h1' sample data item id.
-        self.adapter.add_data_item(self.h1) # adding self.h1 in adapter
+        self.t1 = Sample('t1') # self.t1 takes 't1' sample data item id.
+        self.adapter.add_data_item(self.t1) # adding self.t1 in adapter
         ## Add more samples below, if needed.
 
         # For events
@@ -42,23 +39,45 @@ class MTConnectAdapter(object): # MTConnect adapter object
         self.adapter.complete_gather()
         self.adapter_stream()
 
+    def read_temp_raw(self):
+        os.system('modprobe w1-gpio')
+        os.system('modprobe w1-therm')
+        base_dir = '/sys/bus/w1/devices/'
+        device_folder = glob.glob(base_dir + '28*')[0]
+        device_file = device_folder + '/w1_slave'
+        f = open(device_file, 'r')
+        lines = f.readlines()
+        f.close()
+        return lines
 
+    def read_temp(self):
+        lines = self.read_temp_raw()
+        while lines[0].strip()[-3:] != 'YES':
+            time.sleep(0.2)
+            lines = self.read_temp_raw()
+        equals_pos = lines[1].find('t=')
+        if equals_pos != -1:
+            temp_string = lines[1][equals_pos+2:]
+            temp_c = float(temp_string) / 1000.0
+            return temp_c
+        
     def adapter_stream(self):
         while True:
             try:
                 # Do something here
                 # To halt this loop, short-cut is CTRL+C
-                h1 = sensor.temperature # temperature
-                # t1 = ?
+                t1 = self.read_temp() # temperature
+                # h1 = ? # Humidity (random input 50% - 70%)
 
                 now = datetime.datetime.now() # get current data time
                 
                 self.adapter.begin_gather() # start to collection
-                self.h1.set_value(str(h1)) # set SAMPLE value of h1 (humidity) data item
+                self.t1.set_value(str(t1)) # set SAMPLE value of h1 (temperature) data item
                 self.adapter.complete_gather() # end of collection
 
                 print("{} MTConnect data collection completed ... ".format(now)) # Printing out completed MTConnect collection
-                print("DHT11: Humidity={}RH%\n".format(h1)) # Printing out DHT11 measured values
+                print("DS18B20: Temperature={}°C\n".format(t1)) # Printing out DS18B20 measured values
+                # print("Virtual: Humidity={}RH%\n".format(h1))
 
                 time.sleep(2) # wait for 2 seconds = sampling period
 
@@ -66,23 +85,8 @@ class MTConnectAdapter(object): # MTConnect adapter object
                 print("Stopping MTConnect...")
                 self.adapter.stop() # Stop adapter thread
                 sys.exit() # Terminate Python
-                
-            except RuntimeError as e: # exception for DHT11 sensor
-                # DHT11 make errors often becuase of reading data.
-                # print error and continue.
-                print(e.args[0])
-                time.sleep(2)
-                pass
-            
-            except Exception as e: # exception for DHT11 sensor
-                # If DHT is not detected, break and stop this script.
-                sensor.exit()
-                raise e
 
 ## ====================== MAIN ======================
 if __name__ == "__main__":   
-    #sensor object for DHT11 sensor, D23 means Pin23 of Raspberry Pi
-    sensor = adafruit_dht.DHT11(board.D23, use_pulseio=False)
-    
     # start MTConnect Adapter
     MTConnectAdapter('127.0.0.1', 7878) # Args: host ip, port number
