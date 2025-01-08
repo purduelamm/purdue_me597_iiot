@@ -20,7 +20,7 @@ from pymodbus.payload import BinaryPayloadDecoder
 
 # function for power meter
 def readReg(client, address, length, slave=1):
-    read = client.read_holding_registers(address, length, slave=1)
+    read = client.read_holding_registers(address, count = length, slave=1)
     reg = read.registers
     decoder = BinaryPayloadDecoder.fromRegisters(reg, byteorder=Endian.BIG, wordorder=Endian.BIG)
     value = decoder.decode_32bit_float()
@@ -91,14 +91,14 @@ class MTConnectAdapter(object): # MTConnect adapter object
                 # To halt this loop, short-cut is CTRL+C
                 a = acc.acceleration # get acceleration
                 a1 = a[0] # get only X-axis acceleration
-                # a2 =
-                # a3 =
+                # a2 = ?
+                # a3 = ?
 
                 t1 = self.read_temp() # temperature
                 # h1 = ? # Humidity (random input 50% - 70%)
                 
-                c = ModbusTcpClient("192.168.1.100",port = 502) # args: IP address, port number
-                p1 = readReg(c, 1564, count = 2,slave=1) # true power, W
+                c = ModbusTcpClient("192.168.1.100", port = 502) # args: IP address, port number
+                p1 = readReg(c, 1564, 2, slave=1) # true power, W
                 
                 ## logic to determine power state
                 if p1 > 0:
