@@ -154,7 +154,10 @@ class MTConnectAdapter(object): # MTConnect adapter object
 ## ====================== MAIN ======================
 if __name__ == "__main__":
     model_path = "model/YourModelDirectory/" # model file directory, you must change this!
-    model = tf.keras.models.load_model(model_path) # load the model from the path above
+    model = tf.keras.layers.TFSMLayer(
+        model_path,
+        call_endpoint="serving_default"
+    )
     threshold =  # float: threshold (MAE loss) for the ML model
     min_val =  # float: minimum value for normalization
     max_val =  # float: maximum value for normalization
