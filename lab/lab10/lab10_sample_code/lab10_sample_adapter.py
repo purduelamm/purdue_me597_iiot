@@ -15,7 +15,6 @@ import sys
 ## == GLOBAL CONSTANT ==
 SAMPLE = "sample" # sample string for MTConnect HTML sample method
 CURRENT = "current" # current string for MTConnect HTML current method
-SAMP_RATE = int(??) # sampling rate
 *SAMP_RATE* = int(?) # sampling rate
 *CHUNK* = int(?) # chunk size
 *AGENT* = "http://?ip?:?port?/" # MTConnect agent ip:port
@@ -25,10 +24,6 @@ SAMP_RATE = int(??) # sampling rate
 *N_MELS* = int(?) # number of Mel filter bank
 
 model_file = '20230309_212154_Prelab10_CNN_model1.h5' # CNN model fileanme. Note that this file must be in the same directory
-
-model_keras = tf.keras.models.load_model(model_file, compile=False) # keras model, no need to compile
-model_converter = tf.lite.TFLiteConverter.from_keras_model(model_keras) # tensorflow lite model
-
 interpreter = tf.lite.Interpreter(model_content=model_converter.convert()) # interpreter object by tensorflor lite model
 
 
@@ -67,7 +62,6 @@ class CurrentParsing(object): # MTConnect current Object to get last sequence an
         self.lastSeq = int(header_attribs["lastSequence"])
         for sample in root.iter(MTCONNECT_STR+"DisplacementTimeSeries"):
             self.timestamp = sample.get('timestamp')
-
 
 
 class MTConnectAdapter(object):
@@ -109,13 +103,6 @@ class MTConnectAdapter(object):
                 lastSeq = Current.lastSeq # current last sequence
                 x = get_sound_signal(requests.get(AGENT+SAMPLE+"?from="+str(int(lastSeq-N))+"&count="+str(N)+"&path=//DataItem[@id=%27sensor1%27]")) # request MTConnect sound streams as many as we need
                 X = feature_extraction(x) # input feature for CNN model
-
-                interpreter.allocate_tensors() # allocate (initialize) tensors to interpreter
-                output = interpreter.get_output_details()[0] # get output from interpreter
-                input = interpreter.get_input_details()[0] # get input from interpreter
-
-                interpreter.set_tensor(input['index'], X) # feed the input feature to the CNN model
-                interpreter.invoke() # invoke CNN model prediction
 
                 yhat = interpreter.get_tensor(output['index']) # model output as yhat
                 Y = yhat.argmax() # it returns maximum value (highest probability) from target function (among elements)
