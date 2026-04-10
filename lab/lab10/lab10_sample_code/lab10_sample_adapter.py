@@ -15,17 +15,16 @@ import sys
 ## == GLOBAL CONSTANT ==
 SAMPLE = "sample" # sample string for MTConnect HTML sample method
 CURRENT = "current" # current string for MTConnect HTML current method
-*SAMP_RATE* = int(?) # sampling rate
-*CHUNK* = int(?) # chunk size
-*AGENT* = "http://?ip?:?port?/" # MTConnect agent ip:port
+# SAMP_RATE = ????? # sampling rate
+# CHUNK = ???? # chunk size
+# AGENT = "http://???.???.?.?:????/" # MTConnect agent ip:port
 
-*N* = int(?) # number of sequence to take sound
-*N_FFT* = int(?) # number of FFT
-*N_MELS* = int(?) # number of Mel filter bank
+# N = ?? # number of sequence to take sound
+# N_FFT = ???? # number of FFT
+# N_MELS = ??? # number of Mel filter bank
 
-model_file = '20230309_212154_Prelab10_CNN_model1.h5' # CNN model fileanme. Note that this file must be in the same directory
-interpreter = tf.lite.Interpreter(model_content=model_converter.convert()) # interpreter object by tensorflor lite model
-
+# model_file = '?' # CNN model fileanme. Note that this file must be in the same directory
+model_keras = tf.keras.models.load_model(model_file, compile=False) # keras model, no need to compile
 
 def get_sound_signal(response): # taking sound signal of a series of the MTConnect sequences
     root = ET.fromstring(response.content)
@@ -104,19 +103,16 @@ class MTConnectAdapter(object):
                 x = get_sound_signal(requests.get(AGENT+SAMPLE+"?from="+str(int(lastSeq-N))+"&count="+str(N)+"&path=//DataItem[@id=%27sensor1%27]")) # request MTConnect sound streams as many as we need
                 X = feature_extraction(x) # input feature for CNN model
 
-                yhat = interpreter.get_tensor(output['index']) # model output as yhat
-                Y = yhat.argmax() # it returns maximum value (highest probability) from target function (among elements)
+                yhat = model_keras.predict(X, verbose=0)
+                Y = int(np.argmax(yhat, axis=1)[0])
+                print("timestamp =", Current.timestamp)
+                print("sound_pressure =", round(get_sound_level(x), 2))
+                print("feature_shape =", X.shape)
+                print("yhat =", yhat)
+                print("Y =", Y)
 
                 ## Your algorithm here
-                if Y == 0: # label[0]: OFF --> execution:OFF, vacuum_state:N/A
-                    exe = "OFF"
-                    vs = "N/A"
-                elif Y == 1: # label[1]: ON-airleaking --> execution:ON, vacuum_state:N/A
-                    exe = "ON"
-                    vs = "Air leaking"
-                else: # label[2]: ON-vacuuming --> execution:ON, vacuum_state: N/A
-                    exe = "ON"
-                    vs = "Vacuuming"
+                # if Y == 0: # label[0]: OFF --> execution:OFF, vacuum_state:N/A
 
                 sound_pressure = round(get_sound_level(x),2) # SPL round up 2 to decimal points
 
