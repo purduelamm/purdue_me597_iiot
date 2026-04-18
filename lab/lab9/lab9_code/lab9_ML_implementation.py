@@ -5,14 +5,20 @@ import adafruit_adxl34x
 from micropython import const
 import datetime
 import numpy as np
-from scipy import stats, fft
-import tensorflow as tf
-import keras
+from scipy import stats
+import torch
+import torch.nn as nn
 
+# =========================
+# Device
+# =========================
+device = torch.device("cpu")
+
+# =========================
+# Sensor setup
+# =========================
 i2c = busio.I2C(board.SCL, board.SDA)
-
 acc = adafruit_adxl34x.ADXL345(i2c)
-
 acc.data_rate = const(0b1111)
 
 ratedict = {
@@ -24,68 +30,120 @@ ratedict = {
 
 print("Output data rate is {} Hz".format(ratedict[acc.data_rate]))
 
+# =========================
+# Model definition
+# Must match the saved model exactly
+# =========================
+EMBEDDING_SIZE = 64
+N_feature = 500   # freqFeatures(x) with N=1000 -> N//2 = 500
+
+class AnomalyDetector(nn.Module):
+    def __init__(self, n_feature):
+        super(AnomalyDetector, self).__init__()
+        self.encoder = nn.Sequential(
+            nn.Linear(n_feature, 256),
+            nn.ReLU(),
+            nn.Linear(256, 128),
+            nn.ReLU(),
+            nn.Linear(128, EMBEDDING_SIZE),
+            nn.ReLU()
+        )
+
+        self.decoder = nn.Sequential(
+            nn.Linear(EMBEDDING_SIZE, 128),
+            nn.ReLU(),
+            nn.Linear(128, 256),
+            nn.ReLU(),
+            nn.Linear(256, n_feature),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        encoded = self.encoder(x)
+        decoded = self.decoder(encoded)
+        return decoded
+
+# =========================
+# Utility functions
+# =========================
 def measureData(sensor: object, N: int):
     data_x, data_y, data_z = [], [], []
-    for i in range(N):
+    for _ in range(N):
         x_acc, y_acc, z_acc = sensor.acceleration
         data_x.append(x_acc)
         data_y.append(y_acc)
         data_z.append(z_acc)
-    x_data = np.array(data_x)
-    y_data = np.array(data_y)
-    z_data = np.array(data_z)
+
+    x_data = np.array(data_x, dtype=np.float32)
+    y_data = np.array(data_y, dtype=np.float32)
+    z_data = np.array(data_z, dtype=np.float32)
     return x_data, y_data, z_data
 
 def timeFeatures(data):
     mean = np.mean(data)
     std = np.std(data)
     rms = np.sqrt(np.mean(data ** 2))
-    peak = np.max(abs(data))
+    peak = np.max(np.abs(data))
     skew = stats.skew(data)
     kurt = stats.kurtosis(data)
-    cf = peak / rms
-    feature = np.array([mean, std, rms, peak, skew, kurt, cf], dtype=float)
+    cf = peak / rms if rms != 0 else 0.0
+    feature = np.array([mean, std, rms, peak, skew, kurt, cf], dtype=np.float32)
     return feature
 
 def freqFeatures(data):
     N = len(data)
-    yf = 2 / N * np.abs(fft.fft(data)[:N // 2])
+    yf = 2.0 / N * np.abs(np.fft.fft(data)[:N // 2])
     yf[0] = 0
-    feature = np.array(yf, dtype=float)
+    feature = np.array(yf, dtype=np.float32)
     return feature
 
 def tensorNormalization(data, min_val, max_val):
-    data_normal = (data - min_val) / (max_val - min_val)
-    tensor = tf.cast(data_normal, tf.float32)
-    tensor_feature = tf.reshape(tensor, [1, len(tensor)])
-    return tensor_feature
+    data_normal = (data - min_val) / (max_val - min_val + 1e-8)
+    tensor = torch.tensor(data_normal, dtype=torch.float32).view(1, -1)
+    return tensor
 
 def predict(model, data, threshold):
-    reconstruction = model(data)
-    if isinstance(reconstruction, dict):
-        reconstruction = list(reconstruction.values())[0]
-    loss = tf.keras.losses.mae(reconstruction, data).numpy()
-    result = tf.math.less(loss, threshold).numpy()
-    return result[0], loss[0]
+    model.eval()
+    with torch.no_grad():
+        data = data.to(device)
+        reconstruction = model(data)
+        loss = torch.mean(torch.abs(reconstruction - data), dim=1)
+        result = torch.lt(loss, threshold)
+    return bool(result.item()), float(loss.item())
 
-## ============== MAIN ==============
-
+# =========================
+# Main
+# =========================
 if __name__ == "__main__":
-    model_path = "/home/pi/lab9/models"
-    model = keras.layers.TFSMLayer(model_path, call_endpoint="serving_default")
+    model_path = "/home/pi/lab9/models/20260414_220026_lab8_anomaly_x-axis_raw.pth"
 
-    # threshold = 0.021189
-    # min_val = 0
-    # max_val = 2.46385
+    loaded_model = AnomalyDetector(N_feature)
+    loaded_model.load_state_dict(torch.load(model_path, map_location=device))
+    loaded_model.to(device)
+    loaded_model.eval()
+
+    print("Model reload success.")
+
+    # Use the values you already computed
+    min_val = -20.08401870727539
+    max_val = 17.25970458984375
+
+    # Replace this with your actual threshold
+    threshold = 0.12
 
     while True:
         try:
             x, y, z = measureData(acc, 1000)
+
+            # Current pipeline uses X-axis frequency feature
             input_feature = freqFeatures(x)
+
             input_feature_normalized = tensorNormalization(input_feature, min_val, max_val)
-            result = predict(model, input_feature_normalized, threshold)
+            result, loss = predict(loaded_model, input_feature_normalized, threshold)
+
             now = datetime.datetime.now()
-            print("{0}: Model result={1}, MAE loss={2:.4f}".format(now, result[0], result[1]))
+            print("{0}: Model result={1}, MAE loss={2:.4f}".format(now, result, loss))
+
             time.sleep(1)
 
         except KeyboardInterrupt:
