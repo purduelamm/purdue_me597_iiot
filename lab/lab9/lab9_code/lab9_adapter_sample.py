@@ -11,7 +11,8 @@ import adafruit_adxl34x
 from micropython import const
 import numpy as np
 from scipy import stats, fft
-import tensorflow as tf
+import torch
+import torch.nn as nn
 from data_item import Event, Sample # load data_item package
 from mtconnect_adapter import Adapter # load mtconnect_adapter package
 
@@ -24,6 +25,37 @@ acc.data_rate = const(0b1111) # change sampling rate as 3200 Hz
 # See Table5 of Lab3 manual key=rate code (decimal), value=output data rate (Hz)
 ratedict = {15:3200,14:1600,13:800,12:400,11:200,10:100,9:50,8:25,7:12.5,6:6.25,5:3.13,4:1.56,3:0.78,2:0.39,1:0.2,0:0.1}
 print("Output data rate is {} Hz".format(ratedict[acc.data_rate])) # printing out data rate
+
+device = torch.device("cpu")
+
+EMBEDDING_SIZE = 64
+N_feature = ???  # must match the saved model input feature size
+
+class AnomalyDetector(nn.Module):
+    def __init__(self, n_feature):
+        super(AnomalyDetector, self).__init__()
+        self.encoder = nn.Sequential(
+            nn.Linear(n_feature, 256),
+            nn.ReLU(),
+            nn.Linear(256, 128),
+            nn.ReLU(),
+            nn.Linear(128, EMBEDDING_SIZE),
+            nn.ReLU()
+        )
+
+        self.decoder = nn.Sequential(
+            nn.Linear(EMBEDDING_SIZE, 128),
+            nn.ReLU(),
+            nn.Linear(128, 256),
+            nn.ReLU(),
+            nn.Linear(256, n_feature),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        encoded = self.encoder(x)
+        decoded = self.decoder(encoded)
+        return decoded
 
 def measureData(sensor:object, N:int): # measuring raw data
     data_x, data_y, data_z = [], [], []
@@ -54,16 +86,19 @@ def freqFeatures(data): # freq domain signal processing
     return feature # numpy array, each element data type = float
 
 def tensorNormalization(data, min_val, max_val): # data input as numpy array, min, max
-    data_normal = (data - min_val) / (max_val - min_val) 
-    tensor = tf.cast(data_normal, tf.float32)
-    tensor_feature = tf.reshape(tensor, [-1, len(tensor)])
+    data_normal = (data - min_val) / (max_val - min_val + 1e-8)
+    tensor = torch.tensor(data_normal, dtype=torch.float32)
+    tensor_feature = tensor.view(-1, len(tensor))
     return tensor_feature
 
 def predict(model, data, threshold):
-    reconstruction = model(data)
-    loss = tf.keras.losses.mae(reconstruction, data).numpy()
-    result = tf.math.less(loss, threshold).numpy()
-    return result[0], loss[0]
+    model.eval()
+    with torch.no_grad():
+        data = data.to(device)
+        reconstruction = model(data)
+        loss = torch.mean(torch.abs(reconstruction - data), dim=1)
+        result = torch.lt(loss, threshold)
+    return result[0].item(), loss[0].item()
 
 
 class MTConnectAdapter(object): # MTConnect adapter object
@@ -110,7 +145,7 @@ class MTConnectAdapter(object): # MTConnect adapter object
                 x, y, z = measureData(acc,1000) # x=x-axis, y=y-axis, z-axis acceleration array
                 input_feature = # your input feature
                 input_feature_normalized = tensorNormalization(input_feature, ???, ???) # normalized input feature
-                result = predict(model, FINAL_FEATURE_INPUT, threshold)
+                result = predict(model, input_feature_normalized, threshold)
                 x_rms = timeFeatures(x)[2] # calculate rms of x-axis
                 y_rms =  # calculate rms of y-axis
                 z_rms =  # calculate rms of z-axis
@@ -154,14 +189,14 @@ class MTConnectAdapter(object): # MTConnect adapter object
 ## ====================== MAIN ======================
 if __name__ == "__main__":
     model_path = "model/YourModelDirectory/" # model file directory, you must change this!
-    model = tf.keras.layers.TFSMLayer(
-        model_path,
-        call_endpoint="serving_default"
-    )
+    model = AnomalyDetector(N_feature)
+    model.load_state_dict(torch.load(model_path, map_location=device))
+    model.to(device)
+    model.eval()
+
     threshold =  # float: threshold (MAE loss) for the ML model
     min_val =  # float: minimum value for normalization
     max_val =  # float: maximum value for normalization
     
     # start MTConnect Adapter
     MTConnectAdapter(???, ???) # Args: host ip, port number
-
